@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فحص PWA</title>
+<style>body{font-family:Tahoma,Arial,sans-serif;margin:0;padding:20px;background:#f6f5f2;color:#1b2430}li{list-style:none;padding:8px 12px;margin:6px 0;background:#fff;border-radius:10px;display:flex;justify-content:space-between;gap:10px}ul{padding:0;max-width:460px;margin:auto}.ok{color:#17a083}.no{color:#d8455a}h1{text-align:center;font-size:20px}</style></head>
+<body><h1>فحص PWA</h1><ul id="r"></ul>
+<script>
+const F=['index.html','manifest.webmanifest','sw.js','storage.js','icon-192.png','icon-512.png','maskable-192.png','maskable-512.png','apple-touch-icon.png','favicon-32.png'];
+const r=document.getElementById('r');
+function row(n,ok,m){const l=document.createElement('li');l.innerHTML='<span></span><b class="'+(ok?'ok':'no')+'">'+(ok?'✓ ':'✗ ')+(m||'')+'</b>';l.firstChild.textContent=n;r.appendChild(l)}
+(async()=>{
+for(const f of F){try{const x=await fetch(f,{cache:'no-store'});row(f,x.ok,x.ok?'موجود':x.status)}catch(e){row(f,false,'غير موجود')}}
+try{const x=await fetch('manifest.webmanifest',{cache:'no-store'});const m=await x.json();
+const need=['name','short_name','start_url','scope','display','lang','dir','icons'];const miss=need.filter(k=>!m[k]);
+const has=(s,p)=>(m.icons||[]).some(i=>i.sizes===s&&(i.purpose||'any').includes(p));
+const bad=[];if(m.display!=='standalone')bad.push('display');if(!has('192x192','any'))bad.push('192');if(!has('512x512','any'))bad.push('512');if(!has('192x192','maskable'))bad.push('m192');if(!has('512x512','maskable'))bad.push('m512');
+for(const i of m.icons||[]){try{const z=await fetch(i.src);if(!z.ok)bad.push(i.src)}catch(e){bad.push(i.src)}}
+row('manifest',!miss.length&&!bad.length,!miss.length&&!bad.length?'صالح':'ناقص: '+miss.concat(bad).join(' '))}catch(e){row('manifest',false,'غير صالح')}
+if('serviceWorker'in navigator){const g=await navigator.serviceWorker.getRegistration('./');row('Service Worker',!!(g&&(g.active||g.waiting||g.installing)),g?(g.active?'مفعّل':'قيد التثبيت'):'غير مسجّل — افتح index.html أولًا');
+const ks=await caches.keys();row('Cache',ks.length>0,ks.join(', ')||'فارغ')}else row('Service Worker',false,'غير مدعوم');
+row('الاتصال',true,navigator.onLine?'متصل':'بدون إنترنت');
+row('التخزين الدائم',true,(navigator.storage&&await navigator.storage.persisted())?'مفعّل':'غير مفعّل');
+})();
+</script></body></html>
